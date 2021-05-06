@@ -12,7 +12,7 @@ from os import path
 from time import sleep
 
 # default port for the  server
-port = "8080"
+port = "1234"
 
 # default IP for the server
 ip = "127.0.0.1"
@@ -582,12 +582,12 @@ def run_test_quick_flow(c1, topics):
 
   # generate one message for each topic 30 times in a row
   print("Generating one message for each topic 30 times in a row")
-  for i in range(30):
+  for i in range(100):
     run_udp_client()
 
   # check that C1 receives all the messages correctly
   success = True
-  for i in range(30):
+  for i in range(100):
     for topic in topics:
       success = check_subscriber_output(c1, "1", topic.print()) and success
 

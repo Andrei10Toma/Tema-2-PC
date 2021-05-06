@@ -1,0 +1,102 @@
+    Toma Andrei 321CB
+
+    Introduction:
+    The homework was done in C++, because I wanted to use the data structures
+from STL. The client implementation will be in the subscriber.cpp; the server
+implementation will be in the server.cpp and the data structures defined by me
+will be in the helper.h.
+
+    Defined data structures (found in heleper.h):
+    The defined data structures will help to interpret 
+
+    message - defines the header of the topic message that has the following
+fields: char topic_name[50], si int8_t data_type. The sum of theis fields is 51
+bytes. This structure will be used to extract the topic name and the type of the
+data from the payloads received from the udp clients.
+
+    message_int - defines the structure for the messages that will be INT 
+(data_type = 0). This structure has the following fields: int8_t sign_octet,
+uint32_t value. The sum of this fields is 5 bytes. This structure will be used
+to extract the int value from the payloads received from the udp clients.
+
+    message_short_real - defines the structure for the messages that will be
+SHORT_REAL (data_type = 1). This structure has the following fields: 
+uint16_t value. The memory of this unique field is 2 bytes. This
+structure will be used to extract the short real value from the payloads
+received from the udp clients.
+
+    message_float - defines the structure for the messages that will be FLOAT
+(data_type = 2). This structure has the following fields: int8_t sign_octet, 
+uint32_t value, uint8_t exponent. The sum of this fields is 6 bytes. This
+structure will be used to extract the float value from the payloads received
+from the udp clients.
+
+    message_string - defines the structure for the messages that will be STRING
+(data_type = 3). This structure has the following fields: char value[1500]. The
+memory of this unique field is 1500 bytes. This structure will be used to
+extract the string value from the payloads received from the udp clients.
+
+    Implementation of the client (subscriber.cpp):
+    First things first: a socket to communicate with the server is created. The
+clients will connect to the server and after that the client will send his id
+to the server. After this the socket for the communication with the server and
+the descriptor for the standard input are added to the set. We will use this 2
+descriptors from the set to multiplex between the standard input and the server
+socket.
+    When the standard input descriptor is set the command is read from stdin
+and if it is the "exit" command the client will be closed. Otherwise the command
+will be sent to the server to be interpreted.
+    When the socket to the server is set the client first will receive an int
+(announce). It will be 0 or 1 depending on the type of message that the server
+will send. If it is 0 the message could be "exit" (close the client), "ACK
+subscribe" (sent by the server when the client subscribes to a topic), "ACK
+unsubscribe" (sent by the server when the client unsubscribes from a topic). 
+If it is 1 the server sent a topic message from the udp client. The client will
+receive in this order: the udp socket address, then the message header and after
+will receive the specific message from the udp client (INT, SHORT_REAL, FLOAT
+or STRING). In the end, the socket is closed and the used memory is freed.
+
+    Implementation of the server (server.cpp):
+    First things first: create a socket where the tcp clients can connect and
+one more socket where the udp clients cand send topic messages. The descriptors
+for the just created sockets will be introduced to the set and the standard
+input will be, also, introduced. With the help of the set I will multiplex
+between the standard input, tcp clients connection socket, udp clients socket
+and the connected clients socket. To save the clients and their subscribes to
+topics we will use 4 maps: clients_socket - a map from the connected socket to 
+the id of the clients, clients - a map from the clients id to their connected 
+socket, clients_topic - a map from the id of the clients to their subscribed
+topics and their sf, clients_wait_msg - a map from the clients id to a queue
+where the messages that are sent while the client (subscribed to the topic with
+sf = 1) is disconnected are stored. The messages will be stored in the queue
+until the client is reconnecting. When the client reconnects the messages will
+be sent to him.
+    When the standard input descriptor is set we will check if the command is 
+"exit". If it is exit the server and all the clients will be closed.
+    When the connection socket descriptor is set we will accept the new
+connection of the client, first receiving his id that was sent by the client
+right after the connection. If a client with the same id is already connected
+a message will be printed and the client that was trying to run will be closed.
+The new connection is added to the set and I will insert the information in the
+maps (clients and clients_socket will store only the connected clients). If the
+just connected client has messages in the queue the messages will be sent to
+him and the memory used to store the message in the queue will be freed.
+    When the udp socket descriptor is set we will receive the payload in a
+buffer of 1551 bytes (the maximum payload). Also the header of the message will
+be extracted and then I will try to send the topic message to the clients that
+are subscribed to it. After this based on the data_type we will extract the 
+content of the message in the structure that fits. And also based on the type
+of the data we will send a number of bytes to the client. For all of the data
+types first we will send an announce = 0 so that the client knows we will send
+an udp message to him, then the udp socket address and the header (51 bytes).
+Now based on the data type we will send: for INT I will send 5 bytes, for 
+SHORT_REAL I will send 2 bytes, for FLOAT I will send 6 bytes and for STRING
+I will send 1500 bytes, so that the protocol will have a quick flow. If the
+client is connected we will send it immediatelly, otherwise if the client 
+subscribed with sf = 1 we will store it in the queue and send to him when he is
+reconnecting.
+
+    Obs: Mi s-a intamplat de cateva ori sa imi dea broken pipe pe checker si 
+trebuia sa dau reboot la calculator ca sa functionze din nou. Local mi-a mers
+pe toate testele din checker. In Makefile am introdus de asemenea 3 subscriberi
+de testare. La quick flow am marit valoarea pana la 100 la quick flow si a mers.
