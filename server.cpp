@@ -24,18 +24,25 @@ void remove_from_vector(vector<pair<string, bool>>& v, string topic_name) {
 
 void send_message_from_queue(int client, struct message *message_header, 
     void *msg, struct sockaddr_in * udp_addr) {
-        int announce = 0;
-        send(client, &announce, sizeof(int), 0);
-        send(client, udp_addr, sizeof(struct sockaddr_in), 0);
-        send(client, message_header, 51, 0);
+        int announce = 0, ret;
+        ret = send(client, &announce, sizeof(int), 0);
+        DIE(ret < 0, "send announce from queue");
+        ret = send(client, udp_addr, sizeof(struct sockaddr_in), 0);
+        DIE(ret < 0, "send udp_addr from queue");
+        ret = send(client, message_header, 51, 0);
+        DIE(ret < 0, "send header from queue");
         if (message_header->data_type == 0) {
-            send(client, (struct message_int *) msg, 5, 0);
+            ret = send(client, (struct message_int *) msg, 5, 0);
+            DIE(ret < 0, "send message from queue INT");
         } else if (message_header->data_type == 1) {
-            send(client, (struct message_short_real *)msg, 2, 0);
+            ret = send(client, (struct message_short_real *)msg, 2, 0);
+            DIE(ret < 0, "send message from queue SHORT_REAL");
         } else if (message_header->data_type == 2) {
-            send(client, (struct message_float *)msg, 6, 0);
+            ret = send(client, (struct message_float *)msg, 6, 0);
+            DIE(ret < 0, "send message from queue FLOAT");
         } else if (message_header->data_type == 3) {
-            send(client, (struct message_string *)msg, sizeof(struct message_string), 0);
+            ret = send(client, (struct message_string *)msg, sizeof(struct message_string), 0);
+            DIE(ret < 0, "send message from queue STRING");
         }
     }
 
@@ -43,15 +50,20 @@ void send_message_int(unordered_map<string, vector<pair<string, bool>>> sub_topi
     unordered_map<string, int> clients_socket, struct message_int *msg,
     struct message *message_header, struct sockaddr_in * udp_addr, 
     unordered_map<string, queue<pair<struct sockaddr_in *, pair<struct message *, void *>>>>& wait_msg) {
+    int ret;
     for (auto entry : sub_topics) {
         for (auto& topic : entry.second) {
             if (topic.first.compare(message_header->topic_name) == 0) {
                 int announce = 0;
                 if (clients_socket.find(entry.first) != clients_socket.end()) {
-                    send(clients_socket[entry.first], &announce, sizeof(int), 0);
-                    send(clients_socket[entry.first], udp_addr, sizeof(struct sockaddr_in), 0);
-                    send(clients_socket[entry.first], message_header, 51, 0);
-                    send(clients_socket[entry.first], msg, 5, 0);
+                    ret = send(clients_socket[entry.first], &announce, sizeof(int), 0);
+                    DIE(ret < 0, "send announce INT");
+                    ret = send(clients_socket[entry.first], udp_addr, sizeof(struct sockaddr_in), 0);
+                    DIE(ret < 0, "send udp_addr INT");
+                    ret = send(clients_socket[entry.first], message_header, 51, 0);
+                    DIE(ret < 0, "send header INT");
+                    ret = send(clients_socket[entry.first], msg, 5, 0);
+                    DIE(ret < 0, "send message INT");
                 } else if (topic.second == true) {
                     wait_msg[entry.first].push(make_pair(udp_addr, make_pair(message_header, msg)));
                 }
@@ -64,15 +76,20 @@ void send_message_float(unordered_map<string, vector<pair<string, bool>>> sub_to
     unordered_map<string, int> clients_socket, struct message_float *msg,
     struct message *message_header, struct sockaddr_in * udp_addr, 
     unordered_map<string, queue<pair<struct sockaddr_in *, pair<struct message *, void *>>>>& wait_msg) {
+    int ret;
     for (auto entry : sub_topics) {
         for (auto& topic : entry.second) {
             if (topic.first.compare(message_header->topic_name) == 0) {
                 int announce = 0;
                 if (clients_socket.find(entry.first) != clients_socket.end()) {
-                    send(clients_socket[entry.first], &announce, sizeof(int), 0);
-                    send(clients_socket[entry.first], udp_addr, sizeof(struct sockaddr_in), 0);
-                    send(clients_socket[entry.first], message_header, 51, 0);
-                    send(clients_socket[entry.first], msg, 6, 0);
+                    ret = send(clients_socket[entry.first], &announce, sizeof(int), 0);
+                    DIE(ret < 0, "send announce FLOAT");
+                    ret = send(clients_socket[entry.first], udp_addr, sizeof(struct sockaddr_in), 0);
+                    DIE(ret < 0, "send udp_addr FLOAT");
+                    ret = send(clients_socket[entry.first], message_header, 51, 0);
+                    DIE(ret < 0, "send header FLOAT");
+                    ret = send(clients_socket[entry.first], msg, 6, 0);
+                    DIE(ret < 0, "send message FLOAT");
                 } else if (topic.second == true) {
                     wait_msg[entry.first].push(make_pair(udp_addr, make_pair(message_header, msg)));
                 }
@@ -85,15 +102,20 @@ void send_message_short_real(unordered_map<string, vector<pair<string, bool>>> s
     unordered_map<string, int> clients_socket, struct message_short_real *msg,
     struct message *message_header, struct sockaddr_in * udp_addr,
     unordered_map<string, queue<pair<struct sockaddr_in *, pair<struct message *, void *>>>>& wait_msg) {
+    int ret;
     for (auto entry : sub_topics) {
         for (auto& topic : entry.second) {
             if (topic.first.compare(message_header->topic_name) == 0) {
                 int announce = 0;
                 if (clients_socket.find(entry.first) != clients_socket.end()) {
-                    send(clients_socket[entry.first], &announce, sizeof(int), 0);
-                    send(clients_socket[entry.first], udp_addr, sizeof(struct sockaddr_in), 0);
-                    send(clients_socket[entry.first], message_header, 51, 0);
-                    send(clients_socket[entry.first], msg, 2, 0);
+                    ret = send(clients_socket[entry.first], &announce, sizeof(int), 0);
+                    DIE(ret < 0, "send announce SHORT_REAL");
+                    ret = send(clients_socket[entry.first], udp_addr, sizeof(struct sockaddr_in), 0);
+                    DIE(ret < 0, "send udp_addr SHORT_REAL");
+                    ret = send(clients_socket[entry.first], message_header, 51, 0);
+                    DIE(ret < 0, "send header SHORT_REAL");
+                    ret = send(clients_socket[entry.first], msg, 2, 0);
+                    DIE(ret < 0, "send message SHORT_REAL");
                 } else if (topic.second == true) {
                     wait_msg[entry.first].push(make_pair(udp_addr, make_pair(message_header, msg)));
                 }
@@ -106,21 +128,122 @@ void send_message_string(unordered_map<string, vector<pair<string, bool>>> sub_t
     unordered_map<string, int> clients_socket, struct message_string *msg,
     struct message *message_header, struct sockaddr_in * udp_addr,
     unordered_map<string, queue<pair<struct sockaddr_in *, pair<struct message *, void *>>>>& wait_msg) {
+    int ret;
     for (auto entry : sub_topics) {
         for (auto& topic : entry.second) {
             if (topic.first.compare(message_header->topic_name) == 0) {
+                // client is subscribed to the topic
                 int announce = 0;
                 if (clients_socket.find(entry.first) != clients_socket.end()) {
-                    send(clients_socket[entry.first], &announce, sizeof(int), 0);
-                    send(clients_socket[entry.first], udp_addr, sizeof(struct sockaddr_in), 0);
-                    send(clients_socket[entry.first], message_header, 51, 0);
-                    send(clients_socket[entry.first], msg, sizeof(struct message_string), 0);
+                    // if client is connected the message is sent
+                    // send announce = 0 to announce that a message from udp is
+                    // coming
+                    ret = send(clients_socket[entry.first], &announce, sizeof(int), 0);
+                    DIE(ret < 0, "send announce STRING");
+                    // send the udp information (ip and the port of the udp 
+                    // client)
+                    ret = send(clients_socket[entry.first], udp_addr, sizeof(struct sockaddr_in), 0);
+                    DIE(ret < 0, "send udp_addr STRING");
+                    // send the message header that has the type of the data
+                    // and the topic name
+                    ret = send(clients_socket[entry.first], message_header, 51, 0);
+                    DIE(ret < 0, "send header STRNG");
+                    // send the message value that has type string
+                    ret = send(clients_socket[entry.first], msg, sizeof(struct message_string), 0);
+                    DIE(ret < 0, "send message STRING");
                 } else if (topic.second == true) {
+                    // if client is not connected and sf is true put it in queue
+                    // and send the messages that are in the queue when the
+                    // client reconnects
                     wait_msg[entry.first].push(make_pair(udp_addr, make_pair(message_header, msg)));                    
                 }
             }
         }
     }
+}
+
+void send_message (struct message* header, char *buffer, 
+    unordered_map<string, vector<pair<string, bool>>> clients_topic, 
+    unordered_map<string, int> clients, struct sockaddr_in * udp_addr,
+    unordered_map<string, queue<pair<struct sockaddr_in *, pair<struct message *, void *>>>>& clients_wait_msg) {
+    if (header->data_type == 0) {
+        struct message_int *mi = (struct message_int *)calloc(1, sizeof(struct message_int));
+        memcpy(mi, buffer + 51, sizeof(struct message_int));
+        send_message_int(clients_topic, clients, mi, header, udp_addr, clients_wait_msg);
+    } else if (header->data_type == 1) {
+        struct message_short_real *msr = (struct message_short_real *)calloc(1, sizeof(struct message_short_real));
+        memcpy(msr, buffer + 51, sizeof(struct message_short_real));
+        send_message_short_real(clients_topic, clients, msr, header, udp_addr, clients_wait_msg);
+    } else if (header->data_type == 2) {
+        struct message_float *mf = (struct message_float *)calloc(1, sizeof(struct message_float));
+        memcpy(mf, buffer + 51, sizeof(struct message_float));
+        send_message_float(clients_topic, clients, mf, header, udp_addr, clients_wait_msg);
+    } else if (header->data_type == 3) {
+        struct message_string *ms = (struct message_string *)calloc(1, sizeof(struct message_string));
+        memcpy(ms, buffer + 51, sizeof(struct message_string));
+        send_message_string(clients_topic, clients, ms, header, udp_addr, clients_wait_msg);
+    }
+}
+
+void close_server(int fdmax) {
+    for (int i = 5; i <= fdmax; i++) {
+        int announce = 1;
+        send(i, &announce, sizeof(int), 0);
+        send(i, "exit", 4, 0);
+    }
+}
+
+void disconnect_client(int tcp_sockfd, char *id_recv) {
+    int announce = 1;
+    send(tcp_sockfd, &announce, sizeof(int), 0);
+    send(tcp_sockfd, "exit", 4, 0);
+    close(tcp_sockfd);
+    printf("Client %s disconnected.\n", id_recv);
+}
+
+void disconnect_client_already_connected(int tcp_sockfd, char *id_recv) {
+    int announce = 1;
+    send(tcp_sockfd, &announce, sizeof(int), 0);
+    send(tcp_sockfd, "exit", 4, 0);
+    close(tcp_sockfd);
+    printf("Client %s already connected.\n", id_recv);
+}
+
+int interpret_command(char *buffer_command, 
+    vector<pair<string, bool>>& topics, int &sub) {
+    char *command_name = strtok(buffer_command, DELIM);
+    if (strcmp(command_name, "subscribe") == 0) {
+        char *topic_name = strtok(NULL,  DELIM);
+        char *sf_char = strtok(NULL, DELIM);
+        char *check = strtok(NULL, DELIM);
+        // check if the command is valid
+        if (command_name == NULL || topic_name == NULL
+            || sf_char == NULL) return -1;
+        if (check != NULL) return -1;
+        bool sf = (bool) atoi(sf_char);
+        if (sf != 0 && sf != 1) return -1;
+        topics.push_back(make_pair(topic_name, sf));
+        int announce = 1;
+        // send announce = 1 so the client knows will be an action message from
+        // the server
+        send(sub, &announce, sizeof(int), 0);
+        // send the confirmation that the client was subscribed to the topic
+        send(sub, "ACK subscribe", 14, 0);
+    } else if (strcmp(command_name, "unsubscribe") == 0) {
+        char *topic_name = strtok(NULL, DELIM);
+        char *check = strtok(NULL, DELIM);
+        // check if the command is valid
+        if (topic_name == NULL) return -1;
+        if (check != NULL) return -1;
+        remove_from_vector(topics, topic_name);
+        int announce = 1;
+        // send announce = 1 so the client knows will be an action message from
+        // the server
+        send(sub, &announce, sizeof(int), 0);
+        // send the confirmation that the client was unsubscribed from the topic
+        send(sub, "ACK unsubscribe", 16, 0);
+    }
+    return 1;
 }
 
 int main(int argc, char *argv[]) {
@@ -142,8 +265,10 @@ int main(int argc, char *argv[]) {
     unordered_map<string, int> clients;
     // subscribed topics for each client
     unordered_map<string, vector<pair<string, bool>>> clients_topic;
-    // map for awaiting messages for the clients
-    unordered_map<string, queue<pair<struct sockaddr_in *, pair<struct message *, void *>>>> clients_wait_msg;
+    // map for awaiting messages for the clients (messages sent while the 
+    // subscriber is disconnected)
+    unordered_map<string, queue<pair<struct sockaddr_in *, 
+        pair<struct message *, void *>>>> clients_wait_msg;
     char command[20]; memset(command, 0, 20);
 
     FD_ZERO(&read_fds);
@@ -177,51 +302,44 @@ int main(int argc, char *argv[]) {
     ret = bind(udp_sockfd, (struct sockaddr *)&serv_addr, sizeof(struct sockaddr));
     DIE(ret < 0, "bind error udp socket");
 
+    // listen to maximum 10 clients simultaneously
     ret = listen(connect_sockfd, 10);
 
+    // the new descriptors (socket for the connection of the clients and socket
+    // for receiving messages from udp clients) are added to the set 
     FD_SET(connect_sockfd, &read_fds);
     FD_SET(udp_sockfd, &read_fds);
+    // add the standard input to the set
     FD_SET(STDIN_FILENO, &read_fds);
     fdmax = udp_sockfd;
 
     while (true) {
         tmp_fds = read_fds;
-
         ret = select(fdmax + 1, &tmp_fds, NULL, NULL, NULL);
         DIE(ret < 0, "server select");
 
+        // receive something from standard input
         if (FD_ISSET(STDIN_FILENO, &tmp_fds)) {
             memset(command, 0, 20);
             fgets(command, 20, stdin);
             if (strncmp(command, "exit", 4) == 0) {
-                for (int i = 5; i <= fdmax; i++) {
-                    int announce = 1;
-                    send(i, &announce, sizeof(int), 0);
-                    send(i, "exit", 4, 0);
-                }
+                close_server(fdmax);
                 break;
             }
         } else if (FD_ISSET(connect_sockfd, &tmp_fds)) {
+            // a new subscriber is trying to connect
             sublen = sizeof(sub_addr);
             tcp_sockfd = accept(connect_sockfd, (struct sockaddr *)&sub_addr, &sublen);
             DIE(tcp_sockfd < 0, "accept connection from tcp client");
-            // receive the id od the subscriber
+            // receive the id of the subscriber
             char id_recv[11];
             ret = recv(tcp_sockfd, id_recv, 11, 0);
             if (ret <= 0) {
-                int announce = 1;
-                send(tcp_sockfd, &announce, sizeof(int), 0);
-                send(tcp_sockfd, "exit", 4, 0);
-                close(tcp_sockfd);
-                printf("Client %s disconnected.\n", id_recv);
+                disconnect_client(tcp_sockfd, id_recv);
                 continue;
             }
             if (clients.find(id_recv) != clients.end()) {
-                int announce = 1;
-                send(tcp_sockfd, &announce, sizeof(int), 0);
-                send(tcp_sockfd, "exit", 4, 0);
-                close(tcp_sockfd);
-                printf("Client %s already connected.\n", id_recv);
+                disconnect_client_already_connected(tcp_sockfd, id_recv);
                 continue;
             }
             FD_SET(tcp_sockfd, &read_fds);
@@ -237,11 +355,16 @@ int main(int argc, char *argv[]) {
             if (clients_wait_msg.find(id_recv) == clients_wait_msg.end())
                 clients_wait_msg.insert(make_pair(id_recv, queue<pair<struct sockaddr_in *, pair<struct message *, void *>>>()));
             else {
+                // when the client is connecting send to him the messages from
+                // the queue
                 while (!clients_wait_msg[id_recv].empty()) {
                     pair<struct sockaddr_in *, pair<struct message *, void *>> send_msg = clients_wait_msg[id_recv].front();
                     send_message_from_queue(clients[id_recv], 
                         send_msg.second.first, send_msg.second.second, 
                         send_msg.first);
+                    free(send_msg.first);
+                    free(send_msg.second.first);
+                    free(send_msg.second.second);
                     clients_wait_msg[id_recv].pop();
                 }
             }
@@ -253,23 +376,8 @@ int main(int argc, char *argv[]) {
             if (ret < 0) continue;
             struct message *header = (struct message *)calloc(1, sizeof(struct message));
             memcpy(header, buffer, sizeof(struct message));
-            if (header->data_type == 0) {
-                struct message_int *mi = (struct message_int *)calloc(1, sizeof(struct message_int));
-                memcpy(mi, buffer + 51, sizeof(struct message_int));
-                send_message_int(clients_topic, clients, mi, header, udp_addr, clients_wait_msg);
-            } else if (header->data_type == 1) {
-                struct message_short_real *msr = (struct message_short_real *)calloc(1, sizeof(struct message_short_real));
-                memcpy(msr, buffer + 51, sizeof(struct message_short_real));
-                send_message_short_real(clients_topic, clients, msr, header, udp_addr, clients_wait_msg);
-            } else if (header->data_type == 2) {
-                struct message_float *mf = (struct message_float *)calloc(1, sizeof(struct message_float));
-                memcpy(mf, buffer + 51, sizeof(struct message_float));
-                send_message_float(clients_topic, clients, mf, header, udp_addr, clients_wait_msg);
-            } else if (header->data_type == 3) {
-                struct message_string *ms = (struct message_string *)calloc(1, sizeof(struct message_string));
-                memcpy(ms, buffer + 51, sizeof(struct message_string));
-                send_message_string(clients_topic, clients, ms, header, udp_addr, clients_wait_msg);
-            }
+            send_message(header, buffer, clients_topic, clients, udp_addr,
+                clients_wait_msg);
         } else {
             for (i = 5; i <= fdmax; i++) {
                 if (FD_ISSET(i, &tmp_fds)) {
@@ -284,30 +392,9 @@ int main(int argc, char *argv[]) {
                         clients.erase(clients_socket[i]);
                         clients_socket.erase(i);
                     } else {
-                        char *command_name = strtok(buffer_command, DELIM);
-                        if (strcmp(command_name, "subscribe") == 0) {
-                            char *topic_name = strtok(NULL,  DELIM);
-                            char *sf_char = strtok(NULL, DELIM);
-                            char *check = strtok(NULL, DELIM);
-                            if (command_name == NULL || topic_name == NULL
-                                || sf_char == NULL) continue;
-                            if (check != NULL) continue;
-                            bool sf = (bool) atoi(sf_char);
-                            if (sf != 0 && sf != 1) continue;
-                            clients_topic[clients_socket[i]].push_back(make_pair(topic_name, sf));
-                            int announce = 1;
-                            send(i, &announce, sizeof(int), 0);
-                            send(i, "ACK subscribe", 14, 0);
-                        } else if (strcmp(command_name, "unsubscribe") == 0) {
-                            char *topic_name = strtok(NULL, DELIM);
-                            char *check = strtok(NULL, DELIM);
-                            if (topic_name == NULL) continue;
-                            if (check != NULL) continue;
-                            remove_from_vector(clients_topic[clients_socket[i]], topic_name);
-                            int announce = 1;
-                            send(i, &announce, sizeof(int), 0);
-                            send(i, "ACK unsubscribe", 16, 0);
-                        }
+                        ret = interpret_command(buffer_command, 
+                            clients_topic[clients_socket[i]], i);
+                        if (ret == -1) continue;
                     }
                 }
             }

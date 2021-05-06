@@ -10,6 +10,67 @@
 #include <netinet/tcp.h>
 #include "helper.h"
 
+void receive_int(struct message * message_header, struct sockaddr_in * udp_addr,
+    int sockfd) {
+    struct message_int * message_int = (struct message_int *)calloc(1, sizeof(struct message_int));
+    int ret = recv(sockfd, message_int, sizeof(struct message_int), 0);
+    DIE(ret < 0, "Message int receive");
+    if (message_int->sign_octet == 0) {
+        printf("%s:%d - %s - INT - %d\n", inet_ntoa(udp_addr->sin_addr), 
+        ntohs(udp_addr->sin_port), message_header->topic_name,
+        ntohl(message_int->value));
+    } else {
+        printf("%s:%d - %s - INT - %d\n", inet_ntoa(udp_addr->sin_addr), 
+        ntohs(udp_addr->sin_port), message_header->topic_name, 
+        -1 * ntohl(message_int->value));
+    }
+    free(message_int);
+}
+
+void receive_short_real(struct message * message_header,
+    struct sockaddr_in * udp_addr, int sockfd) {
+    struct message_short_real * message_short_real = (struct message_short_real *)
+        calloc(1, sizeof(struct message_short_real));
+    int ret = recv(sockfd, message_short_real, 
+        sizeof(struct message_short_real), 0);
+    DIE(ret < 0, "Message short real receive");
+    printf("%s:%d - %s - SHORT_REAL - %.2f\n",
+    inet_ntoa(udp_addr->sin_addr), ntohs(udp_addr->sin_port), 
+    message_header->topic_name, ntohs(message_short_real->value) / (float)100);
+    free(message_short_real);
+}
+
+void receive_float(struct message * message_header, 
+    struct sockaddr_in * udp_addr, int sockfd) {
+    struct message_float * message_float = (struct message_float *)calloc(1, 
+        sizeof(struct message_float));
+    int ret = recv(sockfd, message_float, sizeof(struct message_float), 0);
+    DIE(ret < 0, "Message float receive");
+    if (message_float->sign_octet == 0) {
+        printf("%s:%d - %s - FLOAT - %f\n", 
+        inet_ntoa(udp_addr->sin_addr), ntohs(udp_addr->sin_port),
+        message_header->topic_name, (float) ntohl(message_float->value)
+        / pow(10, message_float->exponent));
+    } else {
+        printf("%s:%d - %s - FLOAT - %f\n", 
+        inet_ntoa(udp_addr->sin_addr), ntohs(udp_addr->sin_port),
+        message_header->topic_name, (float) (-1) * ntohl(message_float->value)
+        / pow(10, message_float->exponent));
+    }
+    free(message_float);
+}
+
+void receive_string(struct message * message_header, 
+    struct sockaddr_in * udp_addr, int sockfd) {
+    struct message_string * message_string = (struct message_string *)calloc(1, sizeof(struct message_string));
+    int ret = recv(sockfd, message_string, sizeof(struct message_string), 0);
+    DIE(ret < 0, "Message string receive");
+    printf("%s:%d - %s - STRING - %s\n", inet_ntoa(udp_addr->sin_addr),
+    ntohs(udp_addr->sin_port), message_header->topic_name, 
+    message_string->value);
+    free(message_string);
+}
+
 int main(int argc, char *argv[]) {
     DIE(argc != 4, "Format is ./subscriber {ID_CLIENT} {IP_SERVER} {PORT_SERVER}");
     setvbuf(stdout, NULL, _IONBF, BUFSIZ);
@@ -42,6 +103,8 @@ int main(int argc, char *argv[]) {
     ret = send(sockfd, argv[1], strlen(argv[1]) + 1, 0);
     DIE(ret < 0, "send the ip");
 
+    // add the socket where the server will send messages (sockfd) and the
+    // standard input to the set
     FD_SET(sockfd, &read_fds);
     FD_SET(STDIN_FILENO, &read_fds);
     fd_max = sockfd;
@@ -58,7 +121,7 @@ int main(int argc, char *argv[]) {
             if (strncmp(command, "exit", 4) == 0) {
                 break;
             } else {
-                // send the command to the server
+                // send the command to the server to interpret it
                 ret = send(sockfd, command, 150, 0);
                 DIE(ret < 0, "send command error");
             }
@@ -66,6 +129,11 @@ int main(int argc, char *argv[]) {
             memset(buffer, 0, 150);
             int anounce = -1;
             ret = recv(sockfd, &anounce, sizeof(int), 0);
+            // receive announce = 0 if the server sends a message from udp
+            // receive announce = 1 if the server sends a action message when
+            // the subscribe, unsubscribe or a force exit for the client is
+            // necesarry.
+            DIE(ret < 0, "announce receive");
             if (anounce == 1) {
                 ret = recv(sockfd, buffer, 150, 0);
                 if (ret < 0) continue;
@@ -75,60 +143,27 @@ int main(int argc, char *argv[]) {
                     printf("Subscribed to topic.\n");
                 } else if (strncmp(buffer, "ACK unsubscribe", 16) == 0) {
                     printf("Unsubscribed from topic.\n");
-                } 
+                }
             } else {
-                struct sockaddr_in * udp_adr = (struct sockaddr_in *)calloc(1, sizeof(struct sockaddr_in));
+                struct sockaddr_in * udp_adr = (struct sockaddr_in *)calloc(1,
+                    sizeof(struct sockaddr_in));
+                // receive the udp socket address
                 ret = recv(sockfd, udp_adr, sizeof(struct sockaddr_in), 0);
                 DIE(ret < 0, "Udp receive error");
-                struct message * message_header = (struct message *)calloc(1, sizeof(struct message));
+                struct message * message_header = (struct message *)calloc(1,
+                    sizeof(struct message));
+                // receive the header of the message with the name of the topic
+                // and the type of the data
                 ret = recv(sockfd, message_header, sizeof(struct message), 0);
                 DIE(ret < 0, "Message header receive");
                 if (message_header->data_type == 0) {
-                    struct message_int * message_int = (struct message_int *)calloc(1, sizeof(struct message_int));
-                    ret = recv(sockfd, message_int, sizeof(struct message_int), 0);
-                    DIE(ret < 0, "Message int receive");
-                    if (message_int->sign_octet == 0) {
-                        printf("%s:%d - %s - INT - %d\n", inet_ntoa(udp_adr->sin_addr), 
-                        ntohs(udp_adr->sin_port), message_header->topic_name,
-                        ntohl(message_int->value));
-                    } else {
-                        printf("%s:%d - %s - INT - %d\n", inet_ntoa(udp_adr->sin_addr), 
-                        ntohs(udp_adr->sin_port), message_header->topic_name, 
-                        -1 * ntohl(message_int->value));
-                    }
-                    free(message_int);
+                    receive_int(message_header, udp_adr, sockfd);
                 } else if (message_header->data_type == 1) {
-                    struct message_short_real * message_short_real = (struct message_short_real *)calloc(1, sizeof(struct message_short_real));
-                    ret = recv(sockfd, message_short_real, sizeof(struct message_short_real), 0);
-                    DIE(ret < 0, "Message short real receive");
-                    printf("%s:%d - %s - SHORT_REAL - %.2f\n",
-                    inet_ntoa(udp_adr->sin_addr), ntohs(udp_adr->sin_port), 
-                    message_header->topic_name, ntohs(message_short_real->value) / (float)100);
-                    free(message_short_real);
+                    receive_short_real(message_header, udp_adr, sockfd);
                 } else if (message_header->data_type == 2) {
-                    struct message_float * message_float = (struct message_float *)calloc(1, sizeof(struct message_float));
-                    ret = recv(sockfd, message_float, sizeof(struct message_float), 0);
-                    DIE(ret < 0, "Message float receive");
-                    if (message_float->sign_octet == 0) {
-                        printf("%s:%d - %s - FLOAT - %f\n", 
-                        inet_ntoa(udp_adr->sin_addr), ntohs(udp_adr->sin_port),
-                        message_header->topic_name, (float) ntohl(message_float->value)
-                        / pow(10, message_float->exponent));
-                    } else {
-                        printf("%s:%d - %s - FLOAT - %f\n", 
-                        inet_ntoa(udp_adr->sin_addr), ntohs(udp_adr->sin_port),
-                        message_header->topic_name, (float) (-1) * ntohl(message_float->value)
-                        / pow(10, message_float->exponent));
-                    }
-                    free(message_float);
+                    receive_float(message_header, udp_adr, sockfd);
                 } else if (message_header->data_type == 3) {
-                    struct message_string * message_string = (struct message_string *)calloc(1, sizeof(struct message_string));
-                    ret = recv(sockfd, message_string, sizeof(struct message_string), 0);
-                    DIE(ret < 0, "Message string receive");
-                    printf("%s:%d - %s - STRING - %s\n", inet_ntoa(udp_adr->sin_addr),
-                    ntohs(udp_adr->sin_port), message_header->topic_name, 
-                    message_string->value);
-                    free(message_string);
+                    receive_string(message_header, udp_adr, sockfd);
                 }
             }
         }
