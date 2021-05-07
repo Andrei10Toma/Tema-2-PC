@@ -95,6 +95,23 @@ I will send 1500 bytes, so that the protocol will have a quick flow. If the
 client is connected we will send it immediatelly, otherwise if the client 
 subscribed with sf = 1 we will store it in the queue and send to him when he is
 reconnecting.
+    When one of the connected clients descriptor is set (from 5 to fdmax) I will
+receive the command from the client and interpret it. If we will receive 0 bytes
+the client will disconnect from the server. The port is closed and the client is
+removed from set and maps. Otherwise if we receive some bytes the server will
+interpret the command. If it is the "subscribe" command we will extract every
+component from the command (topic_name, sf) and then we will check if it is a
+valid command. If the client is already subscribed to this topic we will update
+the sf field with the new sf from the command. After the new topic is introduced
+in the vector, the server will send an announce = 1 to let the subscriber know
+that the message that will send will not be from a udp client and after that
+the server send the message "ACK subscribe" so that the client knows he is 
+succesfully subscribed to the topic. Otherwise if it is the "unsubscribe"
+command I will extract the topic_name and then I will check if the command is 
+valid. If the client is subscribed to the topic the topic will be removed from 
+the topic vector. After this the server will send announce = 1 and the message
+"ACK unsubscribe" so that the client knows he was unsubscribed succesfully from
+the topic.
 
     Obs: Mi s-a intamplat de cateva ori sa imi dea broken pipe pe checker si 
 trebuia sa dau reboot la calculator ca sa functionze din nou. Local mi-a mers

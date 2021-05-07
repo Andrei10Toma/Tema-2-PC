@@ -14,12 +14,15 @@ using namespace std;
 
 void remove_from_vector(vector<pair<string, bool>>& v, string topic_name) {
     unsigned int i;
+    bool found = false;
     for (i = 0; i < v.size(); i++) {
         if (v[i].first.compare(topic_name) == 0) {
+            found = true;
             break;
         }
     }
-    v.erase(v.begin() + i);
+    if (found == true)
+        v.erase(v.begin() + i);
 }
 
 void send_message_from_queue(int client, struct message *message_header, 
